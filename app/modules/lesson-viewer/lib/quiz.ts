@@ -6,7 +6,7 @@ import {
   quizAttempts,
   quizAnswers,
 } from "~/db/schema";
-import type { Db } from "./db";
+import type { Db } from "~/db/types";
 
 export function getQuizById(database: Db, quizId: number) {
   return database.select().from(quizzes).where(eq(quizzes.id, quizId)).get();

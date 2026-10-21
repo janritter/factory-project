@@ -2,9 +2,9 @@ import { asc, eq } from "drizzle-orm";
 import { comments, users, UserRole } from "~/db/schema";
 import { renderComment } from "~/lib/comment-markdown.server";
 import { markdown, type Markdown } from "~/lib/text";
-import type { RenderedComment } from "~/components/comment-thread";
+import type { RenderedComment } from "../rendered-comment";
 import { getCourseForLesson } from "./course";
-import type { Db } from "./db";
+import type { Db } from "~/db/types";
 
 type CommentAuthor = {
   id: number;

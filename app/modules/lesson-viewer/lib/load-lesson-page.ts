@@ -26,7 +26,7 @@ import {
   getQuizByLessonId,
   getQuizWithQuestions,
 } from "./quiz";
-import type { Db } from "./db";
+import type { Db } from "~/db/types";
 
 export type FoundCourseDecisions = Extract<CourseDecisions, { found: true }>;
 

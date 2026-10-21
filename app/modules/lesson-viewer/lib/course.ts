@@ -1,6 +1,6 @@
 import { eq, or } from "drizzle-orm";
 import { categories, courses, lessons, modules, users } from "~/db/schema";
-import type { Db } from "./db";
+import type { Db } from "~/db/types";
 
 export function getCourseWithDetails(database: Db, id: number) {
   const course = database

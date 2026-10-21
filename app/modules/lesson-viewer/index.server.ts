@@ -1,5 +1,5 @@
 import { db } from "~/db";
-import type { Db } from "./lib/db";
+import type { Db } from "~/db/types";
 import { getCommentById } from "./lib/thread";
 import { markLessonComplete } from "./lib/progress";
 import { computeResult, getQuizById } from "./lib/quiz";
@@ -8,7 +8,7 @@ import {
   type FoundCourseDecisions,
 } from "./lib/load-lesson-page";
 
-export type { Db } from "./lib/db";
+export type { Db } from "~/db/types";
 
 export type QuizSubmission = {
   userId: number;

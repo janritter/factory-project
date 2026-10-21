@@ -6,7 +6,7 @@ import {
   videoWatchEvents,
   LessonProgressStatus,
 } from "~/db/schema";
-import type { Db } from "./db";
+import type { Db } from "~/db/types";
 
 /** One person's progress through one lesson. */
 export type LearnerLesson = { userId: number; lessonId: number };
