@@ -10,6 +10,7 @@ import {
   UserRole,
   CourseStatus,
   LessonProgressStatus,
+  RefundRequestStatus,
   RefundStatus,
   QuestionType,
   TeamMemberRole,
@@ -78,6 +79,7 @@ async function seed() {
     DROP TABLE IF EXISTS team_members;
     DROP TABLE IF EXISTS teams;
     DROP TABLE IF EXISTS refunds;
+    DROP TABLE IF EXISTS refund_requests;
     DROP TABLE IF EXISTS purchases;
     DROP TABLE IF EXISTS enrollments;
     DROP TABLE IF EXISTS lessons;
@@ -2772,16 +2774,105 @@ This course is still in draft while the cluster examples are rewritten against t
       updatedAt: daysAgo(6),
     })
     .run();
-  db.insert(schema.refunds)
+  db.insert(schema.refundRequests)
     .values({
       purchaseId: liamPurchase.id,
-      status: RefundStatus.Open,
+      status: RefundRequestStatus.Open,
       reason: "Bought the wrong one, I meant the advanced course.",
       requestedAt: daysAgo(4),
     })
     .run();
 
   console.log("Created Liam's Refund Request.");
+
+  // ─── Decided Refund Requests ───
+  // One Approved (with its Pending Refund; the learner has lost access, so
+  // there is no enrollment) and one Declined (with a Decline Reason; the
+  // learner keeps access).
+
+  const [approvedLearner, declinedLearner] = db
+    .insert(schema.users)
+    .values([
+      {
+        name: "Nora Lindgren",
+        email: "nora.lindgren@student.dev",
+        role: UserRole.Student,
+        createdAt: daysAgo(12),
+      },
+      {
+        name: "Theo Marchetti",
+        email: "theo.marchetti@student.dev",
+        role: UserRole.Student,
+        createdAt: daysAgo(15),
+      },
+    ])
+    .returning()
+    .all();
+
+  const [approvedPurchase, declinedPurchase] = db
+    .insert(schema.purchases)
+    .values([
+      {
+        userId: approvedLearner.id,
+        courseId: course2.id,
+        amountPaid: 4900,
+        country: "US",
+        createdAt: daysAgo(10),
+      },
+      {
+        userId: declinedLearner.id,
+        courseId: course3.id,
+        amountPaid: 9900,
+        country: "DE",
+        createdAt: daysAgo(12),
+      },
+    ])
+    .returning()
+    .all();
+
+  db.insert(schema.enrollments)
+    .values({
+      userId: declinedLearner.id,
+      courseId: course3.id,
+      enrolledAt: daysAgo(12),
+    })
+    .run();
+
+  const [approvedRequest] = db
+    .insert(schema.refundRequests)
+    .values([
+      {
+        purchaseId: approvedPurchase.id,
+        status: RefundRequestStatus.Approved,
+        reason: "The course level is not what I expected, I would like my money back.",
+        requestedAt: daysAgo(6),
+        resolvedAt: daysAgo(5),
+        resolvedByUserId: admin.id,
+      },
+      {
+        purchaseId: declinedPurchase.id,
+        status: RefundRequestStatus.Declined,
+        reason: "I finished the first module and it is not for me.",
+        declineReason:
+          "You have completed a large part of the course, which is outside what a refund covers.",
+        requestedAt: daysAgo(4),
+        resolvedAt: daysAgo(3),
+        resolvedByUserId: admin.id,
+      },
+    ])
+    .returning()
+    .all();
+
+  db.insert(schema.refunds)
+    .values({
+      refundRequestId: approvedRequest.id,
+      amount: approvedPurchase.amountPaid,
+      status: RefundStatus.Pending,
+      createdAt: daysAgo(5),
+    })
+    .run();
+
+  console.log("Created an Approved and a Declined Refund Request.");
 
   // ─── Flush watch events ───
   // Batched: the heartbeat makes these by far the largest table, and one

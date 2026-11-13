@@ -5,21 +5,18 @@ import { getCurrentUserId } from "~/lib/session";
 import { db } from "~/db";
 import {
   courses,
-  coupons,
-  lessons,
-  modules,
   purchases,
-  refunds,
+  refundRequests,
   users,
-  videoWatchEvents,
-  RefundStatus,
+  RefundRequestStatus,
 } from "~/db/schema";
-import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import {
+  REFUND_WINDOW_DAYS,
+  getRefundRules,
+} from "~/lib/refund-eligibility.server";
 import { parseFormData, parseParams } from "~/lib/validation";
 import { formatPrice } from "~/lib/utils";
-
-const REFUND_WINDOW_DAYS = 14;
-const MAX_WATCHED_HOURS = 2;
 
 const refundParamsSchema = z.object({
   slug: z.string().min(1),
@@ -46,42 +43,20 @@ function getLatestPurchase(userId: number, courseId: number) {
     .get();
 }
 
-function getLessonIdsForCourse(courseId: number): number[] {
-  const rows = db
-    .select({ id: lessons.id })
-    .from(lessons)
-    .innerJoin(modules, eq(lessons.moduleId, modules.id))
-    .where(eq(modules.courseId, courseId))
-    .all();
-
-  return rows.map((row) => row.id);
-}
-
-function getOpenRefundRequest(purchaseId: number) {
+function getRefundRequestWithStatus(
+  purchaseId: number,
+  status: RefundRequestStatus
+) {
   return db
     .select()
-    .from(refunds)
+    .from(refundRequests)
     .where(
       and(
-        eq(refunds.purchaseId, purchaseId),
-        eq(refunds.status, RefundStatus.Open)
+        eq(refundRequests.purchaseId, purchaseId),
+        eq(refundRequests.status, status)
       )
     )
     .get();
-}
-
-// The fourteen-day window is counted in whole days, not hours — someone who
-// buys at 23:00 should still get the whole of their fourteenth day.
-function calendarDay(when: Date): string {
-  const month = String(when.getMonth() + 1).padStart(2, "0");
-  const day = String(when.getDate()).padStart(2, "0");
-  return `${when.getFullYear()}-${month}-${day}`;
-}
-
-function lastDayOfWindow(purchasedAtIso: string): string {
-  const deadline = new Date(purchasedAtIso);
-  deadline.setDate(deadline.getDate() + REFUND_WINDOW_DAYS);
-  return calendarDay(deadline);
 }
 
 /**
@@ -140,60 +115,36 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("You have not bought this course.", { status: 403 });
   }
 
-  if (getOpenRefundRequest(purchase.id)) {
+  if (getRefundRequestWithStatus(purchase.id, RefundRequestStatus.Open)) {
     throw data("You already have an open refund request on this purchase.", {
       status: 409,
     });
   }
 
+  if (getRefundRequestWithStatus(purchase.id, RefundRequestStatus.Approved)) {
+    throw data("This purchase has already been refunded.", { status: 409 });
+  }
+
+  const rules = getRefundRules(db, {
+    purchase,
+    userId: currentUserId,
+    courseId: course.id,
+    asOf: new Date(),
+  });
+
   // A seat that came out of a team licence, and has been claimed, belongs to
   // the team — the learner cannot hand it back on their own.
-  const claimedSeat = db
-    .select({ id: coupons.id })
-    .from(coupons)
-    .where(
-      and(eq(coupons.purchaseId, purchase.id), isNotNull(coupons.redeemedAt))
-    )
-    .get();
-
-  if (claimedSeat) {
+  if (!rules.notClaimedTeamSeat) {
     throw data("A claimed team seat cannot be refunded.", { status: 403 });
   }
 
-  const today = calendarDay(new Date());
-  const withinRefundWindow = today <= lastDayOfWindow(purchase.createdAt);
-
-  if (!withinRefundWindow) {
+  if (!rules.withinRefundWindow) {
     throw data(`The ${REFUND_WINDOW_DAYS}-day window has closed.`, {
       status: 403,
     });
   }
 
-  const courseLessonIds = getLessonIdsForCourse(course.id);
-
-  let watchedSeconds = 0;
-  if (courseLessonIds.length > 0) {
-    const furthestPerLesson = db
-      .select({
-        furthest: sql<number>`max(${videoWatchEvents.positionSeconds})`,
-      })
-      .from(videoWatchEvents)
-      .where(
-        and(
-          eq(videoWatchEvents.userId, currentUserId),
-          inArray(videoWatchEvents.lessonId, courseLessonIds)
-        )
-      )
-      .groupBy(videoWatchEvents.lessonId)
-      .all();
-
-    watchedSeconds = furthestPerLesson.reduce(
-      (total, row) => total + row.furthest,
-      0
-    );
-  }
-
-  if (watchedSeconds >= MAX_WATCHED_HOURS * 60 * 60) {
+  if (!rules.underWatchLimit) {
     throw data("You have watched too much of this course to request a refund.", {
       status: 403,
     });
@@ -207,10 +158,10 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   db
-    .insert(refunds)
+    .insert(refundRequests)
     .values({
       purchaseId: purchase.id,
-      status: RefundStatus.Open,
+      status: RefundRequestStatus.Open,
       reason: parsed.data.reason,
     })
     .returning()

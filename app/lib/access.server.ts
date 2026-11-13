@@ -200,3 +200,18 @@ export async function requireInstructorOrAdmin(request: Request) {
 
   return { userId, user, isAdmin: user.role === UserRole.Admin };
 }
+
+/**
+ * Throws unless the user is Staff (an admin). Returns their user id.
+ * Use in loaders and actions alike — loader guards don't protect actions.
+ */
+export async function requireRefundStaff(request: Request) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
+
+  if (!user || user.role !== UserRole.Admin) {
+    throw data("Only Staff can decide Refund Requests.", { status: 403 });
+  }
+
+  return { userId, user };
+}
