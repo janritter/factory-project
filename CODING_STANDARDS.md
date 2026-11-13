@@ -23,3 +23,9 @@ is a lie the type checker believes.
 Both switch the type checker off at the exact point you are least sure. If a
 value can be missing, narrow it with a check. If you cannot name the type,
 the shape is wrong — fix the shape.
+
+## Money is integer cents until the edge
+
+Keep amounts in integer cents everywhere (see `docs/adr/0005`). Convert to
+dollars only at the edge: `formatPrice` for prices shown to Students,
+`formatMoney` for analytics, where $0 must not read as "Free".
