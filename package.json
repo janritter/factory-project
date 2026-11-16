@@ -20,7 +20,8 @@
     "seed-wayfinder-issues": "bash scripts/seed-wayfinder-issues.sh",
     "db:migrate": "drizzle-kit migrate",
     "loc": "git ls-files | grep -vE '(lock|.db|_snapshot.json)' | xargs wc -l",
-    "prototype:knock": "node --env-file=.env --import tsx scripts/PROTOTYPE-knock-spike.ts"
+    "prototype:knock": "node --env-file=.env --import tsx scripts/PROTOTYPE-knock-spike.ts",
+    "prototype:knock-ui": "node --env-file=.env node_modules/.bin/react-router dev"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
