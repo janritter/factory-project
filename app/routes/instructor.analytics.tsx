@@ -1,7 +1,7 @@
 import { Link, isRouteErrorResponse, useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { Route } from "./+types/instructor.analytics";
-import { requireInstructorOrAdmin } from "~/lib/access.server";
+import { requireInstructorOrPlatformAdmin } from "~/lib/access.server";
 import {
   and,
   count,
@@ -795,7 +795,7 @@ function getCourseRevenueByCountry(
 }
 
 export async function loader({ request, url }: Route.LoaderArgs) {
-  const { userId, isAdmin } = await requireInstructorOrAdmin(request);
+  const { userId, isAdmin } = await requireInstructorOrPlatformAdmin(request);
 
   const range = parseAnalyticsRange(url.searchParams.get("range"));
   const tab: AnalyticsTab =

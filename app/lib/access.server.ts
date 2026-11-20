@@ -159,30 +159,71 @@ export async function requireContentAccess(
 }
 
 /**
- * Throws unless the user is the course's own instructor, or an admin.
+ * Throws 401 when signed out, 403 unless the user is an admin, and 404 when
+ * the course does not exist. Otherwise the user must be the course's own
+ * instructor or an admin. Returns the caller, the course, and whether they are
+ * an admin.
  */
-export async function requireStaff(
-  request: Request,
-  courseId: number
-): Promise<Access> {
-  const access = await getAccess(request, courseId);
+export async function requireCourseInstructor(request: Request, courseId: number) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
 
-  if (!access.userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+  if (
+    !user ||
+    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
+  ) {
+    throw data("Only instructors and admins can do that.", { status: 403 });
   }
 
-  if (!access.isStaff) {
-    throw data("Only this course's instructor can do that.", { status: 403 });
+  const course = getCourseById(courseId);
+
+  if (!course) {
+    throw data("Course not found.", { status: 404 });
   }
 
-  return access;
+  const isAdmin = user.role === UserRole.Admin;
+
+  if (!isAdmin && course.instructorId !== userId) {
+    throw data("You can only manage your own courses.", { status: 403 });
+  }
+
+  return { userId, user, course, isAdmin };
+}
+
+/**
+ * Throws 401 when signed out, 403 unless the user is an admin.
+ */
+export async function requirePlatformAdmin(request: Request) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
+
+  if (!user || user.role !== UserRole.Admin) {
+    throw data("Only admins can do that.", { status: 403 });
+  }
+
+  return { userId, user };
+}
+
+/**
+ * Throws 401 when signed out, 403 unless the user is an instructor. Admins are
+ * refused here; use requireInstructorOrPlatformAdmin when they should pass too.
+ */
+export async function requireInstructor(request: Request) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
+
+  if (!user || user.role !== UserRole.Instructor) {
+    throw data("Only instructors can do that.", { status: 403 });
+  }
+
+  return { userId, user };
 }
 
 /**
  * Throws unless the user is an instructor or an admin, without tying them to a
  * particular course — for pages that span all of someone's courses.
  */
-export async function requireInstructorOrAdmin(request: Request) {
+export async function requireInstructorOrPlatformAdmin(request: Request) {
   const userId = await requireUserId(request);
   const user = getUserById(userId);
 
