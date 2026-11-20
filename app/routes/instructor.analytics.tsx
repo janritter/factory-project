@@ -795,7 +795,8 @@ function getCourseRevenueByCountry(
 }
 
 export async function loader({ request, url }: Route.LoaderArgs) {
-  const { userId, isAdmin } = await requireInstructorOrPlatformAdmin(request);
+  const { userId, isPlatformAdmin } =
+    await requireInstructorOrPlatformAdmin(request);
 
   const range = parseAnalyticsRange(url.searchParams.get("range"));
   const tab: AnalyticsTab =
@@ -803,7 +804,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
 
   // Instructors are pinned to their own figures; only an admin may look
   // elsewhere, and null means "every instructor".
-  const instructorId = isAdmin
+  const instructorId = isPlatformAdmin
     ? parseId(url.searchParams.get("instructor"))
     : userId;
 
@@ -954,7 +955,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
   // Everyone who owns at least one course, for the admin's instructor picker.
   // Owners rather than users with the instructor role: an admin who owns a
   // course contributes to the platform-wide total.
-  const instructors = isAdmin
+  const instructors = isPlatformAdmin
     ? db
         .selectDistinct({ id: users.id, name: users.name })
         .from(courses)
@@ -989,7 +990,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     ratings: getRatingSummary(instructorId, range),
     tab,
     range,
-    isAdmin,
+    isPlatformAdmin,
     instructorId,
     selectedCourseId,
     summary,
@@ -1505,7 +1506,7 @@ export default function InstructorAnalytics({
   const {
     tab,
     range,
-    isAdmin,
+    isPlatformAdmin,
     instructorId,
     selectedCourseId,
     summary,
@@ -1552,14 +1553,14 @@ export default function InstructorAnalytics({
         <div>
           <h1 className="text-3xl font-bold">Analytics</h1>
           <p className="mt-1 text-muted-foreground">
-            {isAdmin && instructorId === null
+            {isPlatformAdmin && instructorId === null
               ? "Revenue across every instructor on the platform."
               : "Revenue and earnings for your courses."}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isAdmin && (
+          {isPlatformAdmin && (
             <Select
               value={instructorId === null ? "all" : String(instructorId)}
               onValueChange={(value) =>

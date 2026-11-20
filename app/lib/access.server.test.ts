@@ -3,6 +3,7 @@ import { createTestDb, seedBaseData, type TestDb } from "~/test/setup";
 import * as schema from "~/db/schema";
 import { UserRole } from "~/db/schema";
 import { setCurrentUserId } from "~/lib/session";
+import { createUser } from "./users.server";
 import {
   requirePlatformAdmin,
   requireCourseInstructor,
@@ -36,21 +37,17 @@ beforeEach(() => {
   state.db = db;
   base = seedBaseData(db);
 
-  admin = db
-    .insert(schema.users)
-    .values({ name: "Pat Admin", email: "pat@example.com", role: UserRole.Admin })
-    .returning()
-    .get();
+  admin = createUser({
+    name: "Pat Admin",
+    email: "pat@example.com",
+    role: UserRole.Admin,
+  });
 
-  otherInstructor = db
-    .insert(schema.users)
-    .values({
-      name: "Other Instructor",
-      email: "other-instructor@example.com",
-      role: UserRole.Instructor,
-    })
-    .returning()
-    .get();
+  otherInstructor = createUser({
+    name: "Other Instructor",
+    email: "other-instructor@example.com",
+    role: UserRole.Instructor,
+  });
 });
 
 /** A request carrying a real signed session cookie for `userId`, or none when null. */
@@ -144,18 +141,18 @@ describe("requireInstructor", () => {
 });
 
 describe("requireInstructorOrPlatformAdmin", () => {
-  it("lets an admin through and flags them as admin", async () => {
+  it("lets an admin through and flags them as a Platform Admin", async () => {
     const result = await requireInstructorOrPlatformAdmin(await requestAs(admin.id));
 
-    expect(result).toMatchObject({ userId: admin.id, isAdmin: true });
+    expect(result).toMatchObject({ userId: admin.id, isPlatformAdmin: true });
   });
 
-  it("lets an instructor through without the admin flag", async () => {
+  it("lets an instructor through without the Platform Admin flag", async () => {
     const result = await requireInstructorOrPlatformAdmin(
       await requestAs(base.instructor.id)
     );
 
-    expect(result).toMatchObject({ userId: base.instructor.id, isAdmin: false });
+    expect(result).toMatchObject({ userId: base.instructor.id, isPlatformAdmin: false });
   });
 
   it("rejects a student with 403", async () => {
@@ -168,7 +165,7 @@ describe("requireInstructorOrPlatformAdmin", () => {
 });
 
 describe("requireCourseInstructor", () => {
-  it("returns the caller, the course, and isAdmin for the course's own instructor", async () => {
+  it("returns the caller, the course, and isPlatformAdmin for the course's own instructor", async () => {
     const result = await requireCourseInstructor(
       await requestAs(base.instructor.id),
       base.course.id
@@ -178,11 +175,11 @@ describe("requireCourseInstructor", () => {
       userId: base.instructor.id,
       user: { id: base.instructor.id },
       course: { id: base.course.id, instructorId: base.instructor.id },
-      isAdmin: false,
+      isPlatformAdmin: false,
     });
   });
 
-  it("lets an admin into any course and flags isAdmin", async () => {
+  it("lets an admin into any course and flags isPlatformAdmin", async () => {
     const result = await requireCourseInstructor(
       await requestAs(admin.id),
       base.course.id
@@ -191,7 +188,7 @@ describe("requireCourseInstructor", () => {
     expect(result).toMatchObject({
       userId: admin.id,
       course: { id: base.course.id },
-      isAdmin: true,
+      isPlatformAdmin: true,
     });
   });
 

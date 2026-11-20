@@ -158,12 +158,7 @@ export async function requireContentAccess(
   return access;
 }
 
-/**
- * Throws 401 when signed out, 403 unless the user is an admin, and 404 when
- * the course does not exist. Otherwise the user must be the course's own
- * instructor or an admin. Returns the caller, the course, and whether they are
- * an admin.
- */
+/** A Platform Admin passes for every course, not just their own. */
 export async function requireCourseInstructor(request: Request, courseId: number) {
   const userId = await requireUserId(request);
   const user = getUserById(userId);
@@ -181,17 +176,17 @@ export async function requireCourseInstructor(request: Request, courseId: number
     throw data("Course not found.", { status: 404 });
   }
 
-  const isAdmin = user.role === UserRole.Admin;
+  const isPlatformAdmin = user.role === UserRole.Admin;
 
-  if (!isAdmin && course.instructorId !== userId) {
+  if (!isPlatformAdmin && course.instructorId !== userId) {
     throw data("You can only manage your own courses.", { status: 403 });
   }
 
-  return { userId, user, course, isAdmin };
+  return { userId, user, course, isPlatformAdmin };
 }
 
 /**
- * Throws 401 when signed out, 403 unless the user is an admin.
+ * Throws 401 when signed out, 403 unless the user is a Platform Admin.
  */
 export async function requirePlatformAdmin(request: Request) {
   const userId = await requireUserId(request);
@@ -205,8 +200,9 @@ export async function requirePlatformAdmin(request: Request) {
 }
 
 /**
- * Throws 401 when signed out, 403 unless the user is an instructor. Admins are
- * refused here; use requireInstructorOrPlatformAdmin when they should pass too.
+ * Throws 401 when signed out, 403 unless the user is an instructor. Platform
+ * Admins are refused here; use requireInstructorOrPlatformAdmin when they should
+ * pass too.
  */
 export async function requireInstructor(request: Request) {
   const userId = await requireUserId(request);
@@ -220,8 +216,8 @@ export async function requireInstructor(request: Request) {
 }
 
 /**
- * Throws unless the user is an instructor or an admin, without tying them to a
- * particular course — for pages that span all of someone's courses.
+ * Throws unless the user is an instructor or a Platform Admin, without tying them
+ * to a particular course — for pages that span all of someone's courses.
  */
 export async function requireInstructorOrPlatformAdmin(request: Request) {
   const userId = await requireUserId(request);
@@ -231,8 +227,14 @@ export async function requireInstructorOrPlatformAdmin(request: Request) {
     !user ||
     (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
   ) {
-    throw data("Only instructors can access this page.", { status: 403 });
+    throw data("Only instructors and Platform Admins can access this page.", {
+      status: 403,
+    });
   }
 
-  return { userId, user, isAdmin: user.role === UserRole.Admin };
+  return {
+    userId,
+    user,
+    isPlatformAdmin: user.role === UserRole.Admin,
+  };
 }
