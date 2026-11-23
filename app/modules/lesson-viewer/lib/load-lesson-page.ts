@@ -85,12 +85,10 @@ export async function loadLessonPage(
     // Progress is recorded only for people who can take the course, so a
     // Student under a Country Lock gets none.
     if (take.allowed) {
-      // Mark lesson as in-progress when viewed
       markLessonInProgress(database, currentUserId, lessonId);
       const progress = getLessonProgress(database, currentUserId, lessonId);
       lessonStatus = progress?.status ?? null;
 
-      // Get progress for all lessons in course (for curriculum sidebar)
       const progressRecords = getLessonProgressForCourse(
         database,
         currentUserId,
@@ -100,7 +98,6 @@ export async function loadLessonPage(
         lessonProgressMap[record.lessonId] = record.status;
       }
 
-      // Get video watch state for resume and progress display
       if (lesson.videoUrl) {
         lastWatchPosition = getLastWatchPosition(
           database,
@@ -131,19 +128,16 @@ export async function loadLessonPage(
     ? getNote(database, currentUserId, lessonId)
     : undefined;
 
-  // Render lesson content from Markdown to HTML server-side
   const contentHtml = lesson.content
     ? await renderMarkdown(lesson.content)
     : null;
 
-  // Build prev/next navigation
   const allLessons = flattenCourseLessons(courseWithDetails);
   const currentIndex = allLessons.findIndex((l) => l.id === lessonId);
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson =
     currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
-  // Check for quiz attached to this lesson
   const quizRecord = getQuizByLessonId(database, lessonId);
   let quiz: {
     id: number;
