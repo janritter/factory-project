@@ -5,6 +5,8 @@ import { LessonProgressStatus, QuestionType } from "~/db/schema";
 import { markdown } from "~/lib/text";
 import { saveNote } from "~/lib/notes.server";
 import { toggleBookmark } from "~/lib/bookmarks.server";
+import { createComment } from "~/lib/comments.server";
+import { fakeNotifications } from "~/lib/notifications.fake.server";
 import type { Decision } from "~/modules/permissions/course-permissions.server";
 import { createLessonViewer, type FoundCourseDecisions } from "../index.server";
 
@@ -22,7 +24,7 @@ beforeEach(() => {
 });
 
 // ─── Fixtures ───
-// No service writes modules, lessons, quizzes or comments yet, so rows go in
+// No service writes modules, lessons or quizzes yet, so rows go in
 // directly. Kept in one place so a schema change touches only this block.
 
 function addModule(position = 1) {
@@ -76,12 +78,18 @@ function addQuiz(lessonId: number) {
   return { quiz, question, right, wrong };
 }
 
-function addComment(lessonId: number) {
-  return db
-    .insert(schema.comments)
-    .values({ lessonId, userId: base.user.id, body: markdown("Why?") })
-    .returning()
-    .get();
+async function addComment(lessonId: number) {
+  const posted = await createComment(
+    db,
+    base.user.id,
+    lessonId,
+    null,
+    "Why does this work?",
+    NOW,
+    fakeNotifications()
+  );
+  if (!posted.ok) throw new Error(posted.error);
+  return posted.comment;
 }
 
 function enrolledStudent(): FoundCourseDecisions {
@@ -185,11 +193,11 @@ describe("load", () => {
 // ─── actions ───
 
 describe("findComment", () => {
-  it("finds a comment only through its own lesson", () => {
+  it("finds a comment only through its own lesson", async () => {
     const mod = addModule();
     const lesson = addLesson(mod.id, 1);
     const other = addLesson(mod.id, 2);
-    const comment = addComment(lesson.id);
+    const comment = await addComment(lesson.id);
 
     expect(viewer.findComment(lesson.id, comment.id)?.id).toBe(comment.id);
     expect(viewer.findComment(other.id, comment.id)).toBeNull();
