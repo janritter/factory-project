@@ -238,6 +238,26 @@ describe("submitQuiz", () => {
     });
   });
 
+  it("records the attempt with the chosen answer", () => {
+    const lesson = addLesson(addModule().id, 1);
+    const { quiz, question, wrong } = addQuiz(lesson.id);
+
+    const submitted = viewer.submitQuiz(
+      { userId: base.user.id, lessonId: lesson.id, quizId: quiz.id },
+      { [question.id]: wrong.id }
+    );
+    if (submitted.status !== "scored") throw new Error("expected a score");
+
+    const answers = db.select().from(schema.quizAnswers).all();
+    expect(answers).toEqual([
+      expect.objectContaining({
+        attemptId: submitted.result.attemptId,
+        questionId: question.id,
+        selectedOptionId: wrong.id,
+      }),
+    ]);
+  });
+
   it("refuses a quiz from another lesson", () => {
     const mod = addModule();
     const lesson = addLesson(mod.id, 1);

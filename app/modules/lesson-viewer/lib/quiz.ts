@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   quizzes,
   quizQuestions,
@@ -35,16 +35,33 @@ export function getQuizWithQuestions(database: Db, quizId: number) {
     .orderBy(quizQuestions.position)
     .all();
 
-  const questionsWithOptions = questions.map((question) => {
-    const options = database
-      .select()
-      .from(quizOptions)
-      .where(eq(quizOptions.questionId, question.id))
-      .all();
-    return { ...question, options };
-  });
+  const optionsByQuestion = getOptionsByQuestion(
+    database,
+    questions.map((question) => question.id)
+  );
+  const questionsWithOptions = questions.map((question) => ({
+    ...question,
+    options: optionsByQuestion.get(question.id) ?? [],
+  }));
 
   return { ...quiz, questions: questionsWithOptions };
+}
+
+function getOptionsByQuestion(database: Db, questionIds: number[]) {
+  const byQuestion = new Map<number, (typeof quizOptions.$inferSelect)[]>();
+  if (questionIds.length === 0) return byQuestion;
+
+  const options = database
+    .select()
+    .from(quizOptions)
+    .where(inArray(quizOptions.questionId, questionIds))
+    .all();
+  for (const option of options) {
+    const list = byQuestion.get(option.questionId) ?? [];
+    list.push(option);
+    byQuestion.set(option.questionId, list);
+  }
+  return byQuestion;
 }
 
 export function getBestAttempt(database: Db, userId: number, quizId: number) {
@@ -97,6 +114,11 @@ export function computeResult(
       .orderBy(quizQuestions.position)
       .all();
 
+    const optionsByQuestion = getOptionsByQuestion(
+      database,
+      questions.map((question) => question.id)
+    );
+
     let correct = 0;
     const total = questions.length;
     const questionResults: QuestionResult[] = [];
@@ -115,28 +137,8 @@ export function computeResult(
         continue;
       }
 
-      let correctOptionId = null;
-      if (q.questionType === "multiple_choice") {
-        const opts = database
-          .select()
-          .from(quizOptions)
-          .where(eq(quizOptions.questionId, q.id))
-          .all();
-        const correctOpt = opts.find((o) => o.isCorrect === true);
-        correctOptionId = correctOpt ? correctOpt.id : null;
-      } else if (q.questionType === "true_false") {
-        const correctOpt = database
-          .select()
-          .from(quizOptions)
-          .where(
-            and(
-              eq(quizOptions.questionId, q.id),
-              eq(quizOptions.isCorrect, true)
-            )
-          )
-          .get();
-        correctOptionId = correctOpt ? correctOpt.id : null;
-      }
+      const correctOptionId =
+        optionsByQuestion.get(q.id)?.find((o) => o.isCorrect)?.id ?? null;
 
       const isCorrect = selected === correctOptionId;
       if (isCorrect) correct++;
@@ -153,29 +155,28 @@ export function computeResult(
     const passed = scoreValue > 0.7;
     const grade = calculateGrade(scoreValue);
 
-    const attempt = database
-      .insert(quizAttempts)
-      .values({
-        userId,
-        quizId,
-        score: scoreValue,
-        passed,
-      })
-      .returning()
-      .get();
+    const attempt = database.transaction((tx) => {
+      const inserted = tx
+        .insert(quizAttempts)
+        .values({ userId, quizId, score: scoreValue, passed })
+        .returning()
+        .get();
 
-    for (const result of questionResults) {
-      if (result.selectedOptionId !== null) {
-        database
-          .insert(quizAnswers)
-          .values({
-            attemptId: attempt.id,
-            questionId: result.questionId,
-            selectedOptionId: result.selectedOptionId,
-          })
-          .run();
-      }
-    }
+      const answers = questionResults.flatMap((result) =>
+        result.selectedOptionId === null
+          ? []
+          : [
+              {
+                attemptId: inserted.id,
+                questionId: result.questionId,
+                selectedOptionId: result.selectedOptionId,
+              },
+            ]
+      );
+      if (answers.length > 0) tx.insert(quizAnswers).values(answers).run();
+
+      return inserted;
+    });
 
     return {
       attemptId: attempt.id,
