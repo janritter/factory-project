@@ -129,7 +129,6 @@
         "app/modules/instructor-analytics/lib/instructor-analytics.ts",
         "app/modules/instructor-analytics/tests/instructor-analytics.test.ts",
         "app/routes/admin.categories.tsx",
-        "app/routes/courses.$slug.lessons.$lessonId.tsx",
         "app/routes/courses.$slug.purchase.tsx",
         "app/routes/courses.$slug.tsx",
         "app/routes/courses.tsx",
@@ -148,9 +147,13 @@
     {
       "files": [
         "app/components/comment-thread.tsx",
+        "app/components/curriculum-sidebar.tsx",
         "app/components/dev-ui.tsx",
+        "app/components/lesson-pager.tsx",
+        "app/components/locked-lesson.tsx",
         "app/components/monaco-markdown-editor.tsx",
         "app/components/notification-feed.tsx",
+        "app/components/quiz-section.tsx",
         "app/components/sidebar.tsx",
         "app/components/star-rating.tsx",
         "app/components/ui/chart.tsx",
@@ -162,6 +165,10 @@
         "app/lib/refunds.server.ts",
         "app/lib/seat-claims.server.ts",
         "app/modules/instructor-analytics/lib/instructor-analytics.ts",
+        "app/modules/lesson-viewer/lib/course.ts",
+        "app/modules/lesson-viewer/lib/load-lesson-page.ts",
+        "app/modules/lesson-viewer/lib/quiz.ts",
+        "app/modules/lesson-viewer/lib/thread.ts",
         "app/routes/admin.categories.tsx",
         "app/routes/admin.courses.tsx",
         "app/routes/admin.refunds.tsx",
@@ -213,6 +220,8 @@
         "app/lib/utils.ts",
         "app/modules/instructor-analytics/lib/instructor-analytics.ts",
         "app/modules/instructor-analytics/tests/instructor-analytics.test.ts",
+        "app/modules/lesson-viewer/lib/progress.ts",
+        "app/modules/lesson-viewer/lib/quiz.ts",
         "app/modules/permissions/lib/course-permissions.ts",
         "app/modules/permissions/tests/course-permissions.test.ts",
         "app/routes/admin.users.tsx",
@@ -233,6 +242,7 @@
     },
     {
       "files": [
+        "app/modules/lesson-viewer/lib/load-lesson-page.ts",
         "app/routes/courses.$slug.lessons.$lessonId.tsx",
         "request-logger/render.ts"
       ],
