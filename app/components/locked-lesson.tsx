@@ -3,27 +3,14 @@ import { MapPin, ShieldAlert } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { countryName } from "~/lib/ppp";
-import type { DenialReason } from "~/modules/permissions/course-permissions.server";
+import type { LockedLessonPage } from "~/modules/lesson-viewer/index.server";
 import { CurriculumSidebar } from "~/components/curriculum-sidebar";
 import { LessonBreadcrumb } from "~/components/lesson-breadcrumb";
-
-type LockedLessonData = {
-  course: { id: number; title: string; slug: string };
-  curriculum: Array<{
-    id: number;
-    title: string;
-    lessons: Array<{ id: number; title: string }>;
-  }>;
-  module: { id: number; title: string };
-  lesson: { id: number; title: string };
-  enrolled: boolean;
-  lockedReason: DenialReason;
-};
 
 export function LockedLesson({
   data: { course, curriculum, module: mod, lesson, enrolled, lockedReason },
 }: {
-  data: LockedLessonData;
+  data: LockedLessonPage;
 }) {
   const purchasePath = `/courses/${course.slug}/purchase`;
 

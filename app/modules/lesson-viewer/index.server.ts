@@ -17,6 +17,12 @@ export type QuizSubmission = {
 };
 export type { FoundCourseDecisions } from "./lib/load-lesson-page";
 
+/** What the lesson page shows: the full lesson, or the "locked" view. */
+export type LessonPage = NonNullable<
+  Awaited<ReturnType<typeof loadLessonPage>>
+>;
+export type LockedLessonPage = Extract<LessonPage, { view: "locked" }>;
+
 /**
  * The lesson page bound to a database. The app uses `lessonViewer`, which
  * reads the app database; tests build their own against a test database.
