@@ -87,10 +87,21 @@ midnight until we did this.
 Anything the browser can read is public. A secret is read only in a
 `.server` file.
 
-## Do not put a side effect in the render path
+## Keep side effects in actions and effects, out of render and loaders
 
-Rendering is for working out what the output is, not for doing something.
-Anything that touches the outside world belongs in an effect or an action.
+Rendering and loaders work out what the output is. Anything that changes data
+or touches the outside world belongs in an action, or in an effect that runs
+after the page renders. A loader answers a GET, and a GET can run on every
+visit, prefetch and reload, so a loader that writes changes data on a page
+view.
+
+## When a style fix lands, apply it to the siblings
+
+A spacing or style fix belongs to the pattern, not to the one component it
+was found in. Find the components built the same way and change them in the
+same commit. `Card` already carries `py-6`, so a `CardContent` that adds
+`p-6` doubles the vertical padding. Fix that in every card that composes
+`Card` and `CardContent` the same way, not only the one that showed it.
 
 ## Derive, do not store
 

@@ -1,10 +1,10 @@
+import type { Db } from "~/db/types";
 import { db } from "~/db";
 import {
   getPerson,
   requireInstructorOrPlatformAdmin,
   requirePerson,
   requirePlatformAdmin,
-  type Db,
 } from "./lib/person";
 
 export type { Person, PersonRole } from "./lib/person";

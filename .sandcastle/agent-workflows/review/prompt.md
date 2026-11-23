@@ -7,26 +7,56 @@ Review it with the code-review skill, .agents/skills/code-review/SKILL.md:
 - spec: /tmp/review-spec.md
 - standards: CODING_STANDARDS.md
 
-Leave the human reviewer as little as possible. Fix every finding you can on
-`{{BRANCH}}`, and commit each fix through the pre-commit hook. The workflow
-pushes your commits. Leave `.github/` untouched.
+Fix on `{{BRANCH}}`. Leave `.github/` untouched.
 
-Every finding you leave unfixed becomes an inline comment on its file and
-line. You will be asked for them as structured output.
+## Scope of the fixes
 
-Write your verdict on the branch, after your fixes, to /tmp/review-verdict.md:
+Fix everything the diff touches or moves. That includes violations that already
+sat in code the diff moved or edited, and the neighbouring siblings of any
+pattern you fix. Code that a size limit forced you to move is new code: judge
+it as new.
 
-    ## Standards: PASS | CHANGES REQUESTED
-    One line of reasoning, then the findings, worst first: each one fixed
-    (its commit) or left (its file and line), citing the rule by heading.
+## Reasons to leave a finding
 
-    ## Spec: PASS | CHANGES REQUESTED
-    One line of reasoning, then the findings, fixed or left.
+A finding stays unfixed only with one of these two reasons:
 
-    ## Rules this review wanted and could not find
-    Anything you wanted to fail the change for that no standard covers.
-    The retro reads this list.
+- needs-human-decision: a product or design call that a person must make.
+- too-large: the fix cannot fit this run. Give a one-line estimate of why.
+
+A finding that is pre-existing, moved without change, or outside the ticket
+still gets fixed under the scope above.
+
+## The loop
+
+Work through the findings one at a time. For each one:
+
+1. Fix it.
+2. Run `npm run check` and fix until it is green.
+3. Commit with `git commit`. The pre-commit hook runs on it. Keep the hook as
+   it is: fix the work when the hook rejects a commit, and never use
+   `--no-verify` or edit `.husky/`, `scripts/pre-commit.sh` or
+   `core.hooksPath`.
+
+When the diff touches `app/lib` or `app/modules`, also run
+`npm run test:mutation` and fix each surviving mutant (the mutation-testing
+skill lists them).
+
+Finish when every finding is fixed or carries a reason, and `npm run check` is
+green.
+
+## Keep a running list
+
+The structured review is written from memory after you finish, with no tool
+calls. As you go, keep a list of each finding with its axis, title, rule, and
+either its fixing commit sha or its file, line and reason. Also keep the
+summary of each axis, the rules you wanted but could not find, and the
+questions a person must answer before merging.
+
+An axis passes when no finding on it is left. A fixed finding does not fail
+its axis. No spec in /tmp/review-spec.md means the Spec axis passes, and its
+summary says so.
+
+## Screenshots
 
 When the change shows in the UI, save screenshots as PNGs in /tmp/evidence/.
-Reference each in the verdict by its absolute path, e.g.
-`![after](/tmp/evidence/after.png)`. The workflow uploads them.
+The verdict lists them.

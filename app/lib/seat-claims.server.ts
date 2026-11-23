@@ -1,6 +1,5 @@
+import type { Db } from "~/db/types";
 import { and, count, eq, isNull } from "drizzle-orm";
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import * as schema from "~/db/schema";
 import { coupons, courses, enrollments, purchases } from "~/db/schema";
 import {
   enrollStudentInTransaction,
@@ -14,8 +13,6 @@ import {
   type Notifications,
 } from "~/lib/notifications.server";
 import { checkCountryLock } from "~/lib/ppp";
-
-export type Db = BetterSQLite3Database<typeof schema>;
 
 type Seat = typeof coupons.$inferSelect;
 type Enrollment = typeof enrollments.$inferSelect;
