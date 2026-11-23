@@ -1,5 +1,6 @@
 import { db } from "~/db";
-import type { Db, Person } from "./lib/person";
+import type { Person } from "./lib/person";
+import type { Db } from "~/db/types";
 import {
   decide,
   getCourseDecisions,

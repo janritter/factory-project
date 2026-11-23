@@ -1,9 +1,10 @@
+import type { Db } from "~/db/types";
 import { data } from "react-router";
 import { and, eq } from "drizzle-orm";
 import { courses, enrollments, lessons, modules } from "~/db/schema";
 import { checkCountryLock, countryName } from "~/lib/ppp";
 import { getNewestIndividualPurchase } from "~/lib/refunds.server";
-import { getPerson, SIGNED_OUT_MESSAGE, type Db, type Person } from "./person";
+import { getPerson, SIGNED_OUT_MESSAGE, type Person } from "./person";
 
 export type Capability = "view" | "take" | "manage";
 

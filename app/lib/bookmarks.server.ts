@@ -1,10 +1,7 @@
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import * as schema from "~/db/schema";
+import type { Db } from "~/db/types";
 import { and, desc, eq } from "drizzle-orm";
 import { bookmarks, courses, lessons, modules } from "~/db/schema";
 import { savedLessonColumns } from "~/lib/saved-lesson.server";
-
-export type Db = BetterSQLite3Database<typeof schema>;
 
 /** Whether the Student has bookmarked the Lesson. */
 export function isBookmarked(

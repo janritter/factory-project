@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "react", "jsx-a11y", "import", "vitest"],
-  "jsPlugins": ["./lint-rules/sql-raw.js"],
+  "jsPlugins": ["./lint-rules/sql-raw.js", "./lint-rules/shared-db-type.js"],
   "categories": {
     "correctness": "error"
   },
@@ -86,7 +86,8 @@
     "import/no-default-export": "error",
     "vitest/no-disabled-tests": "error",
     "vitest/no-focused-tests": "error",
-    "sql/no-dynamic-raw": "error"
+    "sql/no-dynamic-raw": "error",
+    "db/no-redeclared-db-type": "error"
   },
   "overrides": [
     {
@@ -100,6 +101,18 @@
       ],
       "rules": {
         "import/no-default-export": "off"
+      }
+    },
+    {
+      // app/db/types.ts owns the type. The other two files are over the token
+      // limit, so editing them forces a split: they keep their own copy until then.
+      "files": [
+        "app/db/types.ts",
+        "app/lib/refunds.server.ts",
+        "app/modules/instructor-analytics/lib/instructor-analytics.ts"
+      ],
+      "rules": {
+        "db/no-redeclared-db-type": "off"
       }
     },
     {

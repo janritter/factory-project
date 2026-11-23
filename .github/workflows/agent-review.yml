@@ -28,9 +28,10 @@ name: Agent — Review A Pull Request
 #
 # IT FIXES WHAT IT CAN
 #   A review that only lists findings hands the work to a human. This one
-#   fixes every finding it can, as commits on the PR's branch, and leaves the
-#   rest as inline comments on their file and line. The workflow pushes the
-#   commits, never forced. If someone pushed to the branch during the run,
+#   fixes every finding it can, as commits on the PR's branch. A finding it
+#   leaves carries one of two reasons: it needs a human decision, or it is too
+#   large for this run. Each left finding becomes an inline comment on its
+#   file and line. The workflow pushes the commits, never forced. If someone pushed to the branch during the run,
 #   GitHub rejects the push, and the commits go to a new branch,
 #   `<pr branch>-<run id>`, opened as a draft PR against the same base. The
 #   original PR gets the `agent:blocked` label, because a person has to pick
@@ -163,6 +164,11 @@ jobs:
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Install agent-browser
+        # The agent checks a change in a real browser: see
+        # docs/agents/agent-browser.md. The CI image does not have it.
+        run: npm install -g agent-browser && agent-browser install
+
       - name: Migrate and seed the database
         # The pre-commit hook runs on every commit the agent makes, and the
         # repo's checks need a database.
@@ -247,6 +253,8 @@ jobs:
           echo "number=${url##*/}" >> "$GITHUB_OUTPUT"
 
       - name: Post the verdict on the pull request
+        # /tmp/review-verdict.md is rendered by review.ts from the agent's
+        # structured review, so its headings and table are the same every run.
         if: always()
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}

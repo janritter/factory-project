@@ -162,6 +162,12 @@ jobs:
         if: steps.batch.outputs.numbers != '[]'
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Install agent-browser
+        # The agent checks a change in a real browser: see
+        # docs/agents/agent-browser.md. The CI image does not have it.
+        if: steps.batch.outputs.numbers != '[]'
+        run: npm install -g agent-browser && agent-browser install
+
       - name: Explore
         if: steps.batch.outputs.numbers != '[]'
         env:

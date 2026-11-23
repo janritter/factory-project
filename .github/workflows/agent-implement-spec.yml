@@ -412,6 +412,11 @@ jobs:
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Install agent-browser
+        # The agent checks a change in a real browser: see
+        # docs/agents/agent-browser.md. The CI image does not have it.
+        run: npm install -g agent-browser && agent-browser install
+
       - name: Migrate and seed the database
         run: |
           npm run db:migrate

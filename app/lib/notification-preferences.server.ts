@@ -1,6 +1,5 @@
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import type { Db } from "~/db/types";
 import { eq } from "drizzle-orm";
-import * as schema from "~/db/schema";
 import { coupons, courses, purchases, UserRole, users } from "~/db/schema";
 import {
   DEFAULT_FEED_PREFERENCES,
@@ -103,8 +102,6 @@ export async function setFeedPreference(
     [category]: { feed: enabled },
   });
 }
-
-type Db = BetterSQLite3Database<typeof schema>;
 
 /**
  * The categories whose switch the person sees on /settings, in display
