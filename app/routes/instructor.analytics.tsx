@@ -2,7 +2,6 @@ import { Link, isRouteErrorResponse, useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { Route } from "./+types/instructor.analytics";
 import { requireInstructorOrAdmin } from "~/lib/access.server";
-import { db } from "~/db";
 import {
   ANALYTICS_RANGES,
   PLATFORM_FEE_PERCENT,
@@ -14,14 +13,16 @@ import {
   getAnalyticsOptions,
   getCourseReport,
   getOverview,
-  type CourseCountryRevenue,
-  type CourseFunnel,
-  type CourseProgressSummary,
-  type FunnelLesson,
-  type QuizPassRate,
-  type RefundExposure,
-  type RevenueSeries,
-} from "~/lib/instructor-analytics.server";
+} from "~/modules/instructor-analytics/server";
+import type {
+  CourseCountryRevenue,
+  CourseFunnel,
+  CourseProgressSummary,
+  FunnelLesson,
+  QuizPassRate,
+  RefundExposure,
+  RevenueSeries,
+} from "~/modules/instructor-analytics";
 import { countryName } from "~/lib/ppp";
 import { REFUND_WINDOW_DAYS } from "~/lib/refund-rules";
 import { Button } from "~/components/ui/button";
@@ -89,7 +90,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     : userId;
 
   const now = new Date();
-  const { courseOptions, instructors } = getAnalyticsOptions(db, instructorId, {
+  const { courseOptions, instructors } = getAnalyticsOptions(instructorId, {
     includeInstructors: isAdmin,
   });
 
@@ -102,13 +103,13 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     ? requestedCourseId
     : null;
 
-  const overview = getOverview(db, { instructorId, range }, now);
+  const overview = getOverview({ instructorId, range }, now);
   // Progress and drop-off span all time whatever the range says, and the tab
   // says so on screen. Quizzes and countries honour the range.
   const report =
     selectedCourseId === null
       ? null
-      : getCourseReport(db, selectedCourseId, range, now);
+      : getCourseReport(selectedCourseId, range, now);
 
   return {
     questions: overview.questions,

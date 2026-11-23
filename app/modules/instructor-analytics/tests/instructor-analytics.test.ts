@@ -11,7 +11,7 @@ import {
   getAnalyticsOptions,
   getCourseReport,
   getOverview,
-} from "./instructor-analytics.server";
+} from "../index";
 
 // A fixed clock. Ranges, buckets and refund windows are all measured from it.
 const NOW = new Date("2026-10-06T12:00:00.000Z");
