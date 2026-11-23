@@ -45,10 +45,13 @@ const RANGE_DAYS: Record<Exclude<AnalyticsRange, "all">, number> = {
  * The boundary is decided in exactly one place: a row landing exactly on the
  * cutoff is inside the range. Lives here rather than in the service because
  * panels built on other services have to agree with it.
+ *
+ * `now` is passed in, never read from the clock, so every caller measures the
+ * window from the same instant.
  */
-export function rangeStart(range: AnalyticsRange): string | null {
+export function rangeStart(range: AnalyticsRange, now: Date): string | null {
   if (range === "all") return null;
-  return new Date(Date.now() - RANGE_DAYS[range] * 86_400_000).toISOString();
+  return new Date(now.getTime() - RANGE_DAYS[range] * 86_400_000).toISOString();
 }
 
 const MONTHS = [
