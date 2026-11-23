@@ -60,6 +60,30 @@ const saveNoteSchema = z.object({
     ),
 });
 
+const idSchema = z.coerce.number().int().positive();
+
+const submitQuizSchema = z.object({ quizId: idSchema });
+
+function parseLessonId(params: { lessonId: string }): number {
+  const parsed = idSchema.safeParse(params.lessonId);
+  if (!parsed.success) throw data("Lesson not found", { status: 404 });
+  return parsed.data;
+}
+
+/** Quiz answers arrive as fields named `question-{questionId}` = optionId. */
+function parseQuizAnswers(formData: FormData): Record<number, number> {
+  const selectedAnswers: Record<number, number> = {};
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("question-")) continue;
+    const questionId = idSchema.safeParse(key.slice("question-".length));
+    const optionId = idSchema.safeParse(value);
+    if (questionId.success && optionId.success) {
+      selectedAnswers[questionId.data] = optionId.data;
+    }
+  }
+  return selectedAnswers;
+}
+
 const deleteCommentSchema = z.object({
   intent: z.literal("delete-comment"),
   commentId: z.coerce.number().int(),
@@ -105,7 +129,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Lesson not found", { status: 404 });
   }
 
-  const page = await lessonViewer.load(decisions, Number(params.lessonId));
+  const page = await lessonViewer.load(decisions, parseLessonId(params));
   if (!page) {
     throw data("Lesson not found", { status: 404 });
   }
@@ -131,7 +155,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     ref
   );
   const currentUserId = person.id;
-  const lessonId = Number(params.lessonId);
+  const lessonId = parseLessonId(params);
 
   if (
     intent === "create-comment" ||
@@ -241,21 +265,12 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   if (intent === "submit-quiz") {
-    const quizId = Number(formData.get("quizId"));
-    if (isNaN(quizId)) {
+    const parsed = parseFormData(formData, submitQuizSchema);
+    if (!parsed.success) {
       throw data("Invalid quiz ID", { status: 400 });
     }
-    // Collect answers: form fields named "question-{questionId}" with value = optionId
-    const selectedAnswers: Record<number, number> = {};
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith("question-")) {
-        const questionId = Number(key.replace("question-", ""));
-        const optionId = Number(value);
-        if (!isNaN(questionId) && !isNaN(optionId)) {
-          selectedAnswers[questionId] = optionId;
-        }
-      }
-    }
+    const { quizId } = parsed.data;
+    const selectedAnswers = parseQuizAnswers(formData);
 
     // Scoped to this lesson, so a quiz elsewhere can't be reached by posting
     // its id to this route.
