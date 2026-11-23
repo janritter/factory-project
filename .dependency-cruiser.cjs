@@ -87,6 +87,24 @@ module.exports = {
     // },
 
     {
+      name: "components-no-server-code",
+      comment:
+        "Components render in the browser. Importing the database, drizzle, better-sqlite3 or a *.server module drags Node-only code into the client bundle and breaks hydration (every click handler on the page dies). Load data in a route loader and pass it in as props. Type-only imports are erased at build time and stay allowed.",
+      severity: "error",
+      from: { path: "^app/components/" },
+      to: {
+        path: [
+          "^app/db/",
+          "\\.server\\.[jt]sx?$",
+          "^node_modules/(drizzle-orm|better-sqlite3)/",
+        ],
+        // schema.ts only imports drizzle-orm/sqlite-core (pure JS), so enums
+        // like UserRole are safe to import from the browser.
+        pathNot: "^app/db/schema\\.ts$",
+        dependencyTypesNot: ["type-only"],
+      },
+    },
+    {
       name: "instructor-analytics-route-no-db",
       comment:
         "The instructor analytics route gets its data from the instructor-analytics module, never by querying the database itself.",
