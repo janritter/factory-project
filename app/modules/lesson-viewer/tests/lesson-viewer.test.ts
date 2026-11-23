@@ -78,6 +78,19 @@ function addQuiz(lessonId: number) {
   return { quiz, question, right, wrong };
 }
 
+function addQuestionWithoutOptions(quizId: number) {
+  return db
+    .insert(schema.quizQuestions)
+    .values({
+      quizId,
+      questionText: "Pick one",
+      questionType: QuestionType.MultipleChoice,
+      position: 2,
+    })
+    .returning()
+    .get();
+}
+
 async function addComment(lessonId: number) {
   const posted = await createComment(
     db,
@@ -188,6 +201,45 @@ describe("load", () => {
       expect(option).not.toHaveProperty("isCorrect");
     }
   });
+
+  it("reports how far the student has watched the video", async () => {
+    const lesson = db
+      .insert(schema.lessons)
+      .values({
+        moduleId: addModule().id,
+        title: "Video",
+        videoUrl: "https://www.youtube.com/watch?v=abc",
+        durationMinutes: 10,
+        position: 1,
+      })
+      .returning()
+      .get();
+    // The video tracking route is the only writer of watch events.
+    db.insert(schema.videoWatchEvents)
+      .values({
+        userId: base.user.id,
+        lessonId: lesson.id,
+        eventType: "progress",
+        positionSeconds: 150,
+      })
+      .run();
+
+    const page = await viewer.load(enrolledStudent(), lesson.id);
+    if (page?.view !== "full") throw new Error("expected the full lesson");
+
+    expect(page).toMatchObject({ lastWatchPosition: 150, watchProgress: 25 });
+  });
+
+  it("sends a question that has no options with an empty list", async () => {
+    const lesson = addLesson(addModule().id, 1);
+    const { quiz } = addQuiz(lesson.id);
+    addQuestionWithoutOptions(quiz.id);
+
+    const page = await viewer.load(enrolledStudent(), lesson.id);
+    if (page?.view !== "full") throw new Error("expected the full lesson");
+
+    expect(page.quiz?.questions[1].options).toEqual([]);
+  });
 });
 
 // ─── actions ───
@@ -264,6 +316,78 @@ describe("submitQuiz", () => {
         selectedOptionId: wrong.id,
       }),
     ]);
+  });
+
+  it("records an attempt with no answers when nothing is chosen", () => {
+    const lesson = addLesson(addModule().id, 1);
+    const { quiz } = addQuiz(lesson.id);
+
+    const submitted = viewer.submitQuiz(
+      { userId: base.user.id, lessonId: lesson.id, quizId: quiz.id },
+      {}
+    );
+
+    expect(submitted).toMatchObject({
+      status: "scored",
+      result: { score: 0, totalQuestions: 1 },
+    });
+    expect(db.select().from(schema.quizAnswers).all()).toEqual([]);
+  });
+
+  it("scores an answer to a question with no options as wrong", () => {
+    const lesson = addLesson(addModule().id, 1);
+    const { quiz, question, right } = addQuiz(lesson.id);
+    const bare = addQuestionWithoutOptions(quiz.id);
+
+    const submitted = viewer.submitQuiz(
+      { userId: base.user.id, lessonId: lesson.id, quizId: quiz.id },
+      { [question.id]: right.id, [bare.id]: right.id }
+    );
+
+    expect(submitted).toMatchObject({
+      status: "scored",
+      result: { score: 0.5, totalCorrect: 1, totalQuestions: 2 },
+    });
+  });
+
+  it("scores a question with no correct option as wrong", () => {
+    const lesson = addLesson(addModule().id, 1);
+    const { quiz } = addQuiz(lesson.id);
+    const bare = addQuestionWithoutOptions(quiz.id);
+    const [onlyOption] = db
+      .insert(schema.quizOptions)
+      .values({ questionId: bare.id, optionText: "No", isCorrect: false })
+      .returning()
+      .all();
+
+    const submitted = viewer.submitQuiz(
+      { userId: base.user.id, lessonId: lesson.id, quizId: quiz.id },
+      { [bare.id]: onlyOption.id }
+    );
+
+    expect(submitted).toMatchObject({
+      status: "scored",
+      result: { totalCorrect: 0, totalQuestions: 2 },
+    });
+  });
+
+  it("scores a quiz with no questions as zero", () => {
+    const lesson = addLesson(addModule().id, 1);
+    const quiz = db
+      .insert(schema.quizzes)
+      .values({ lessonId: lesson.id, title: "Empty", passingScore: 0.7 })
+      .returning()
+      .get();
+
+    const submitted = viewer.submitQuiz(
+      { userId: base.user.id, lessonId: lesson.id, quizId: quiz.id },
+      {}
+    );
+
+    expect(submitted).toMatchObject({
+      status: "scored",
+      result: { score: 0, totalQuestions: 0 },
+    });
   });
 
   it("refuses a quiz from another lesson", () => {

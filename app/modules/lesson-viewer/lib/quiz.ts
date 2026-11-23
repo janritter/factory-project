@@ -49,8 +49,6 @@ export function getQuizWithQuestions(database: Db, quizId: number) {
 
 function getOptionsByQuestion(database: Db, questionIds: number[]) {
   const byQuestion = new Map<number, (typeof quizOptions.$inferSelect)[]>();
-  if (questionIds.length === 0) return byQuestion;
-
   const options = database
     .select()
     .from(quizOptions)
