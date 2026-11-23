@@ -8,6 +8,9 @@ import {
 } from "~/db/schema";
 import type { Db } from "./db";
 
+/** One person's progress through one lesson. */
+export type LearnerLesson = { userId: number; lessonId: number };
+
 export function getLessonProgress(
   database: Db,
   userId: number,
@@ -60,8 +63,7 @@ export function getLessonProgressForCourse(
 
 export function markLessonComplete(
   database: Db,
-  userId: number,
-  lessonId: number,
+  { userId, lessonId }: LearnerLesson,
   now: Date
 ) {
   const existing = getLessonProgress(database, userId, lessonId);
@@ -143,8 +145,7 @@ export function getLastWatchPosition(
 
 export function calculateWatchProgress(
   database: Db,
-  userId: number,
-  lessonId: number,
+  { userId, lessonId }: LearnerLesson,
   videoDurationSeconds: number
 ) {
   if (videoDurationSeconds <= 0) return 0;

@@ -39,7 +39,7 @@ export function createLessonViewer(database: Db) {
     },
 
     markComplete(userId: number, lessonId: number, now: Date) {
-      return markLessonComplete(database, userId, lessonId, now);
+      return markLessonComplete(database, { userId, lessonId }, now);
     },
 
     /**
@@ -54,7 +54,11 @@ export function createLessonViewer(database: Db) {
       if (!quiz || quiz.lessonId !== lessonId) {
         return { status: "not-found" as const };
       }
-      const result = computeResult(database, userId, quizId, selectedAnswers);
+      const result = computeResult(
+        database,
+        { userId, quizId },
+        selectedAnswers
+      );
       return result
         ? { status: "scored" as const, result }
         : { status: "failed" as const };

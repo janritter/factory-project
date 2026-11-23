@@ -76,8 +76,7 @@ export type QuestionResult = {
 
 export function computeResult(
   database: Db,
-  userId: number,
-  quizId: number,
+  { userId, quizId }: { userId: number; quizId: number },
   selectedAnswers: Record<number, number>
 ) {
   try {

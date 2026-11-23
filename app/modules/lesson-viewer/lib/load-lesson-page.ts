@@ -111,8 +111,7 @@ export async function loadLessonPage(
         if (videoDurationSeconds > 0) {
           watchProgress = calculateWatchProgress(
             database,
-            currentUserId,
-            lessonId,
+            { userId: currentUserId, lessonId },
             videoDurationSeconds
           );
         }
