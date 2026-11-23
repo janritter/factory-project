@@ -113,3 +113,10 @@ Name and extract until a comment is unnecessary. A comment earns its place
 only for a _why_ the code cannot express: a constraint, a decision, a link to
 the ADR behind it. A comment that restates _what_ the code does goes stale the
 first time the code changes.
+
+## Prefer the query builder to `sql` templates
+
+Reach for `eq`, `like`, `inArray` and the rest of Drizzle's builders first.
+When a `sql` template is needed, interpolate only bound values and schema
+columns. Lint already rejects `sql.raw` with a dynamic string; review the
+`sql` fragments it cannot see, such as ones concatenated from user input.
