@@ -73,6 +73,27 @@ module.exports = {
       to: { circular: true },
     },
 
+    {
+      name: "instructor-analytics-no-db-connection",
+      comment:
+        "Instructor analytics takes its database as an injected argument so it can be tested against an in-memory one. Only its server.ts entry point may bind the real connection (app/db/index.ts); the implementation, index.ts and tests may not import it. The schema (app/db/schema.ts) is fine.",
+      severity: "error",
+      from: {
+        path: `^${R}/instructor-analytics/`,
+        pathNot: `^${R}/instructor-analytics/server\\.ts$`,
+      },
+      to: { path: "^app/db/index\\.ts$" },
+    },
+
+    {
+      name: "analytics-route-no-database",
+      comment:
+        "The instructor analytics route reads data only through the instructor-analytics module's server.ts. It may not import the database connection, the schema, or drizzle itself.",
+      severity: "error",
+      from: { path: "^app/routes/instructor\\.analytics\\.tsx$" },
+      to: { path: ["^app/db/", "^node_modules/drizzle-orm/"] },
+    },
+
     // --- Layering (optional, off by default) ----------------------------------
     // Interface-hiding controls HOW you import (through the entry points).
     // Layering controls WHICH packages may depend on which. Add your own rules
