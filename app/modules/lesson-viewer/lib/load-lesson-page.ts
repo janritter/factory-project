@@ -1,3 +1,4 @@
+import type { LessonProgressStatus, QuestionType } from "~/db/schema";
 import type {
   CourseDecisions,
   DenialReason,
@@ -76,10 +77,10 @@ export async function loadLessonPage(
     };
   }
 
-  let lessonStatus: string | null = null;
+  let lessonStatus: LessonProgressStatus | null = null;
   let lastWatchPosition = 0;
   let watchProgress = 0;
-  const lessonProgressMap: Record<number, string> = {};
+  const lessonProgressMap: Record<number, LessonProgressStatus> = {};
 
   if (currentUserId) {
     // Progress is recorded only for people who can take the course, so a
@@ -146,7 +147,7 @@ export async function loadLessonPage(
     questions: Array<{
       id: number;
       questionText: string;
-      questionType: string;
+      questionType: QuestionType;
       position: number;
       options: Array<{ id: number; optionText: string }>;
     }>;
