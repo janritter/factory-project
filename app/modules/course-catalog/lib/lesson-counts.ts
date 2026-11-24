@@ -8,8 +8,6 @@ export function countLessonsByCourse(
   courseIds: readonly number[]
 ): Map<number, number> {
   const totals = new Map(courseIds.map((id) => [id, 0]));
-  if (courseIds.length === 0) return totals;
-
   const rows = database
     .select({ courseId: modules.courseId, lessonCount: count(lessons.id) })
     .from(lessons)

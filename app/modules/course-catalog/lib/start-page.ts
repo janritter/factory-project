@@ -57,15 +57,18 @@ function newestPublishedCourses(database: Db): FeaturedCourse[] {
 }
 
 function countPublishedCourses(database: Db): number {
-  const row = database
+  const [{ total }] = database
     .select({ total: count() })
     .from(courses)
     .where(eq(courses.status, CourseStatus.Published))
-    .get();
-  return row?.total ?? 0;
+    .all();
+  return total;
 }
 
 function countCategories(database: Db): number {
-  const row = database.select({ total: count() }).from(categories).get();
-  return row?.total ?? 0;
+  const [{ total }] = database
+    .select({ total: count() })
+    .from(categories)
+    .all();
+  return total;
 }

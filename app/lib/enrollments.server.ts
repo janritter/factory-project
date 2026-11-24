@@ -20,8 +20,6 @@ export function countEnrollmentsByCourse(
   courseIds: readonly number[]
 ): Map<number, number> {
   const totals = new Map(courseIds.map((id) => [id, 0]));
-  if (courseIds.length === 0) return totals;
-
   const rows = db
     .select({ courseId: enrollments.courseId, total: count() })
     .from(enrollments)
