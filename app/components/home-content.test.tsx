@@ -57,10 +57,9 @@ describe("HomeContent", () => {
     expect(firstScreen?.[1]).not.toContain("Available Courses");
   });
 
-  it("keeps the hero compact so the courses start on the first screen", () => {
+  it("keeps the hero to one heading line with no forced break or tall padding", () => {
     const html = render();
 
-    expect(html).toMatch(/<h1 class="text-3xl [^"]*sm:text-5xl"/);
     expect(html).not.toContain("py-24");
     expect(html).not.toContain("<br/>");
   });

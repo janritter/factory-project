@@ -1,5 +1,12 @@
 import { Link } from "react-router";
-import { ArrowRight, BookOpen, GraduationCap, User, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  GraduationCap,
+  type LucideIcon,
+  User,
+  Users,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -142,7 +149,7 @@ function Stat({
   value,
   label,
 }: {
-  icon: typeof BookOpen;
+  icon: LucideIcon;
   value: number | string;
   label: string;
 }) {
