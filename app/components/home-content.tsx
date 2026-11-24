@@ -33,10 +33,12 @@ export function HomeContent({
 }: HomeContentProps) {
   return (
     <>
-      <HomeHero />
-      {featuredCourses.length > 0 && (
-        <FeaturedCourses courses={featuredCourses} />
-      )}
+      <div className="flex min-h-[calc(100svh-4rem)] flex-col justify-center">
+        <HomeHero />
+        {featuredCourses.length > 0 && (
+          <FeaturedCourses courses={featuredCourses} />
+        )}
+      </div>
       <HomeStats
         totalCourses={totalCourses}
         totalCategories={totalCategories}
@@ -47,16 +49,16 @@ export function HomeContent({
 
 function HomeHero() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-10 text-center sm:py-14">
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+    <section className="mx-auto max-w-6xl px-6 py-6 text-center sm:pt-8">
+      <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
         Learn to code,{" "}
         <span className="text-muted-foreground">at your own pace</span>
       </h1>
-      <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+      <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
         Structured courses built by experienced instructors. Track your
         progress, take quizzes, and build real-world skills.
       </p>
-      <div className="mt-6 flex items-center justify-center gap-4">
+      <div className="mt-5 flex items-center justify-center gap-4">
         <Button asChild size="lg">
           <Link to="/courses">
             Browse Courses
@@ -70,13 +72,13 @@ function HomeHero() {
 
 function FeaturedCourses({ courses }: { courses: FeaturedCourse[] }) {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-16">
-      <div className="mb-6 flex items-end justify-between">
+    <section className="mx-auto w-full max-w-6xl px-6 pb-10">
+      <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Featured Courses
           </h2>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-1 text-muted-foreground">
             Start learning with our newest courses
           </p>
         </div>

@@ -47,11 +47,23 @@ describe("HomeContent", () => {
     expect(stats).toBeGreaterThan(featured);
   });
 
+  it("centres the hero and the featured courses in one viewport-high first screen", () => {
+    const html = render();
+
+    const firstScreen = html.match(
+      /<div class="flex min-h-\[calc\(100svh-4rem\)\] flex-col justify-center">([\s\S]*?)<\/div><section class="border-y/
+    );
+
+    expect(firstScreen).not.toBeNull();
+    expect(firstScreen?.[1]).toContain("Learn to code");
+    expect(firstScreen?.[1]).toContain("Featured Courses");
+    expect(firstScreen?.[1]).not.toContain("Available Courses");
+  });
+
   it("keeps the hero compact so the courses start on the first screen", () => {
     const html = render();
 
-    expect(html).toMatch(/<section class="[^"]*\bpy-10\b[^"]*\bsm:py-14\b/);
-    expect(html).toMatch(/<h1 class="text-4xl [^"]*sm:text-5xl"/);
+    expect(html).toMatch(/<h1 class="text-3xl [^"]*sm:text-5xl"/);
     expect(html).not.toContain("py-24");
     expect(html).not.toContain("<br/>");
   });
