@@ -5,10 +5,11 @@ import { z } from "zod";
 import type { Route } from "./+types/admin.courses";
 import { people } from "~/modules/permissions/person.server";
 import { parseFormData } from "~/lib/validation";
-import { CourseStatus, courses, enrollments } from "~/db/schema";
+import { CourseStatus, courses } from "~/db/schema";
 import { db } from "~/db";
+import { countEnrollmentsByCourse } from "~/lib/enrollments.server";
 import { courseCatalog } from "~/modules/course-catalog/index.server";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -34,16 +35,6 @@ function getAllCourses() {
   return db.select().from(courses).all();
 }
 
-function getEnrollmentCountForCourse(courseId: number) {
-  const result = db
-    .select({ count: sql<number>`count(*)` })
-    .from(enrollments)
-    .where(eq(enrollments.courseId, courseId))
-    .get();
-
-  return result?.count ?? 0;
-}
-
 function updateCourseStatus(id: number, status: CourseStatus) {
   return db
     .update(courses)
@@ -65,12 +56,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const allCourses = getAllCourses();
 
-  const lessonCounts = courseCatalog.lessonCounts(allCourses.map((c) => c.id));
+  const courseIds = allCourses.map((c) => c.id);
+  const lessonCounts = courseCatalog.lessonCounts(courseIds);
+  const enrollmentCounts = countEnrollmentsByCourse(db, courseIds);
 
   const coursesWithDetails = allCourses.map((course) => ({
     ...course,
     lessonCount: lessonCounts.get(course.id) ?? 0,
-    enrollmentCount: getEnrollmentCountForCourse(course.id),
+    enrollmentCount: enrollmentCounts.get(course.id) ?? 0,
   }));
 
   return { courses: coursesWithDetails };
