@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoutesStub } from "react-router";
-import {
-  HomeContent,
-  type FeaturedCourse,
-  type HomeContentProps,
-} from "./home-content";
+import type { FeaturedCourse } from "~/modules/course-catalog";
+import { HomeContent, type HomeContentProps } from "./home-content";
 
 const course: FeaturedCourse = {
   id: 1,

@@ -8,22 +8,9 @@ import {
   CardHeader,
 } from "~/components/ui/card";
 import { CourseImage } from "~/components/course-image";
+import type { FeaturedCourse, StartPage } from "~/modules/course-catalog";
 
-export type FeaturedCourse = {
-  id: number;
-  title: string;
-  slug: string;
-  description: string;
-  coverImageUrl: string | null;
-  instructorName: string | null;
-  lessonCount: number;
-};
-
-export type HomeContentProps = {
-  featuredCourses: FeaturedCourse[];
-  totalCourses: number;
-  totalCategories: number;
-};
+export type HomeContentProps = StartPage;
 
 /** The start page between its header and footer: hero, featured courses, stats. */
 export function HomeContent({
