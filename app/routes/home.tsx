@@ -70,14 +70,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-6">
           <Link to="/" className="text-xl font-bold tracking-tight">
             Cadence
           </Link>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-2 sm:gap-6">
             <Link
               to="/courses"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Courses
             </Link>
@@ -100,7 +100,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <>
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Log In
                 </Link>
