@@ -1,5 +1,5 @@
 import type { Db } from "~/db/types";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { courses, enrollments } from "~/db/schema";
 import {
   sendSafely,
@@ -13,6 +13,23 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Queryable = Db | Tx;
 
 type Enrollment = typeof enrollments.$inferSelect;
+
+/** Enrollment totals for each course, in one query. A course nobody is on maps to 0. */
+export function countEnrollmentsByCourse(
+  db: Queryable,
+  courseIds: readonly number[]
+): Map<number, number> {
+  const totals = new Map(courseIds.map((id) => [id, 0]));
+  const rows = db
+    .select({ courseId: enrollments.courseId, total: count() })
+    .from(enrollments)
+    .where(inArray(enrollments.courseId, [...courseIds]))
+    .groupBy(enrollments.courseId)
+    .all();
+
+  for (const row of rows) totals.set(row.courseId, row.total);
+  return totals;
+}
 
 /** Whether the Student has an Enrollment on the course right now. */
 export function isEnrolled(

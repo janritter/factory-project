@@ -1,6 +1,7 @@
 import { Form, Link, useNavigation, isRouteErrorResponse } from "react-router";
 import type { Route } from "./+types/courses";
 import { db } from "~/db";
+import { courseCatalog } from "~/modules/course-catalog/index.server";
 import {
   courses as coursesTable,
   categories as categoriesTable,
@@ -13,7 +14,7 @@ import {
   CourseStatus,
   LessonProgressStatus,
 } from "~/db/schema";
-import { eq, like, and, or, sql, inArray } from "drizzle-orm";
+import { eq, like, and, or, sql, inArray, desc, type SQL } from "drizzle-orm";
 import {
   Card,
   CardContent,
@@ -31,19 +32,12 @@ import { resolveCountry } from "~/lib/country.server";
 import { calculatePppPrice } from "~/lib/ppp";
 import { StarRating } from "~/components/star-rating";
 
-function buildCourseQuery(
-  search: string | null,
-  category: string | null,
-  status: CourseStatus | null,
-  sortBy: string | null,
-  limit: number,
-  offset: number
-) {
-  const conditions = [];
+const COURSE_PAGE_SIZE = 50;
 
-  if (status) {
-    conditions.push(eq(coursesTable.status, status));
-  }
+function findPublishedCourses(search: string | null, category: string | null) {
+  const conditions: (SQL | undefined)[] = [
+    eq(coursesTable.status, CourseStatus.Published),
+  ];
 
   if (search) {
     const term = `%${search}%`;
@@ -82,35 +76,11 @@ function buildCourseQuery(
     conditions.push(eq(categoriesTable.slug, category));
   }
 
-  const filtered =
-    conditions.length > 0 ? query.where(and(...conditions)) : query;
-
-  const sorted =
-    sortBy === "title"
-      ? filtered.orderBy(coursesTable.title)
-      : sortBy === "oldest"
-        ? filtered.orderBy(coursesTable.createdAt)
-        : filtered.orderBy(sql`${coursesTable.createdAt} DESC`);
-
-  return sorted.limit(limit).offset(offset).all();
-}
-
-function getLessonCountForCourse(courseId: number) {
-  const courseModules = db
-    .select({ id: modules.id })
-    .from(modules)
-    .where(eq(modules.courseId, courseId))
+  return query
+    .where(and(...conditions))
+    .orderBy(desc(coursesTable.createdAt))
+    .limit(COURSE_PAGE_SIZE)
     .all();
-
-  if (courseModules.length === 0) return 0;
-
-  const count = db
-    .select({ count: sql<number>`count(*)` })
-    .from(lessons)
-    .where(or(...courseModules.map((m) => eq(lessons.moduleId, m.id))))
-    .get();
-
-  return count?.count ?? 0;
 }
 
 function getAllCategories() {
@@ -286,14 +256,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
   const search = url.searchParams.get("q");
   const category = url.searchParams.get("category");
 
-  const courses = buildCourseQuery(
-    search,
-    category,
-    CourseStatus.Published,
-    "newest",
-    50,
-    0
-  );
+  const courses = findPublishedCourses(search, category);
 
   const currentUserId = await getCurrentUserId(request);
   const country = await resolveCountry(request);
@@ -316,7 +279,9 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     }
   }
 
-  const ratingSummaries = getCourseRatingSummaries(courses.map((c) => c.id));
+  const courseIds = courses.map((c) => c.id);
+  const ratingSummaries = getCourseRatingSummaries(courseIds);
+  const lessonCounts = courseCatalog.lessonCounts(courseIds);
 
   const coursesWithLessonCount = courses.map((course) => {
     const userProgress = progressMap.get(course.id);
@@ -326,7 +291,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     const rating = ratingSummaries.get(course.id);
     return {
       ...course,
-      lessonCount: getLessonCountForCourse(course.id),
+      lessonCount: lessonCounts.get(course.id) ?? 0,
       progress: userProgress?.progress ?? null,
       completedLessons: userProgress?.completedLessons ?? null,
       pppPrice,

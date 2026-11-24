@@ -5,15 +5,11 @@ import { z } from "zod";
 import type { Route } from "./+types/admin.courses";
 import { people } from "~/modules/permissions/person.server";
 import { parseFormData } from "~/lib/validation";
-import {
-  CourseStatus,
-  courses,
-  modules,
-  lessons,
-  enrollments,
-} from "~/db/schema";
+import { CourseStatus, courses } from "~/db/schema";
 import { db } from "~/db";
-import { eq, or, sql } from "drizzle-orm";
+import { countEnrollmentsByCourse } from "~/lib/enrollments.server";
+import { courseCatalog } from "~/modules/course-catalog/index.server";
+import { eq } from "drizzle-orm";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -39,34 +35,6 @@ function getAllCourses() {
   return db.select().from(courses).all();
 }
 
-function getLessonCountForCourse(courseId: number) {
-  const courseModules = db
-    .select({ id: modules.id })
-    .from(modules)
-    .where(eq(modules.courseId, courseId))
-    .all();
-
-  if (courseModules.length === 0) return 0;
-
-  const count = db
-    .select({ count: sql<number>`count(*)` })
-    .from(lessons)
-    .where(or(...courseModules.map((m) => eq(lessons.moduleId, m.id))))
-    .get();
-
-  return count?.count ?? 0;
-}
-
-function getEnrollmentCountForCourse(courseId: number) {
-  const result = db
-    .select({ count: sql<number>`count(*)` })
-    .from(enrollments)
-    .where(eq(enrollments.courseId, courseId))
-    .get();
-
-  return result?.count ?? 0;
-}
-
 function updateCourseStatus(id: number, status: CourseStatus) {
   return db
     .update(courses)
@@ -88,10 +56,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const allCourses = getAllCourses();
 
+  const courseIds = allCourses.map((c) => c.id);
+  const lessonCounts = courseCatalog.lessonCounts(courseIds);
+  const enrollmentCounts = countEnrollmentsByCourse(db, courseIds);
+
   const coursesWithDetails = allCourses.map((course) => ({
     ...course,
-    lessonCount: getLessonCountForCourse(course.id),
-    enrollmentCount: getEnrollmentCountForCourse(course.id),
+    lessonCount: lessonCounts.get(course.id) ?? 0,
+    enrollmentCount: enrollmentCounts.get(course.id) ?? 0,
   }));
 
   return { courses: coursesWithDetails };

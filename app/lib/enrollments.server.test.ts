@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createTestDb, seedBaseData, type TestDb } from "~/test/setup";
 import * as schema from "~/db/schema";
-import { enrollStudent, isEnrolled } from "./enrollments.server";
+import {
+  countEnrollmentsByCourse,
+  enrollStudent,
+  isEnrolled,
+} from "./enrollments.server";
 import { approveRefundRequest, raiseRefundRequest } from "./refunds.server";
 import {
   fakeNotifications,
@@ -190,5 +194,33 @@ describe("the new Enrollment Notification", () => {
       "Knock is down"
     );
     consoleError.mockRestore();
+  });
+});
+
+describe("counting Enrollments per course", () => {
+  it("counts each course's Enrollments and maps a course nobody is on to 0", async () => {
+    const nobodysCourseId = base.course.id + 1;
+    await enrollStudent(db, base.user.id, base.course.id, NOW, notifications);
+    await enrollStudent(
+      db,
+      base.instructor.id,
+      base.course.id,
+      NOW,
+      notifications
+    );
+
+    const counts = countEnrollmentsByCourse(db, [
+      base.course.id,
+      nobodysCourseId,
+    ]);
+
+    expect([...counts]).toEqual([
+      [base.course.id, 2],
+      [nobodysCourseId, 0],
+    ]);
+  });
+
+  it("returns an empty map for no course ids", () => {
+    expect(countEnrollmentsByCourse(db, []).size).toBe(0);
   });
 });
