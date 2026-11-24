@@ -20,8 +20,9 @@ import { CourseImage } from "~/components/course-image";
 import { isRouteErrorResponse } from "react-router";
 import { CourseStatus } from "~/db/schema";
 import { db } from "~/db";
-import { courses, modules, lessons, enrollments } from "~/db/schema";
-import { eq, or, sql } from "drizzle-orm";
+import { courseCatalog } from "~/modules/course-catalog/index.server";
+import { courses, enrollments } from "~/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 function getCoursesByInstructor(instructorId: number) {
   return db
@@ -29,24 +30,6 @@ function getCoursesByInstructor(instructorId: number) {
     .from(courses)
     .where(eq(courses.instructorId, instructorId))
     .all();
-}
-
-function getLessonCountForCourse(courseId: number) {
-  const courseModules = db
-    .select({ id: modules.id })
-    .from(modules)
-    .where(eq(modules.courseId, courseId))
-    .all();
-
-  if (courseModules.length === 0) return 0;
-
-  const count = db
-    .select({ count: sql<number>`count(*)` })
-    .from(lessons)
-    .where(or(...courseModules.map((m) => eq(lessons.moduleId, m.id))))
-    .get();
-
-  return count?.count ?? 0;
 }
 
 function getEnrollmentCountForCourse(courseId: number) {
@@ -71,8 +54,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const instructorCourses = getCoursesByInstructor(person.id);
 
+  const lessonCounts = courseCatalog.lessonCounts(
+    instructorCourses.map((c) => c.id)
+  );
+
   const coursesWithStats = instructorCourses.map((course) => {
-    const lessonCount = getLessonCountForCourse(course.id);
+    const lessonCount = lessonCounts.get(course.id) ?? 0;
     const enrollmentCount = getEnrollmentCountForCourse(course.id);
 
     return {
